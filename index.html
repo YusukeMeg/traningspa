@@ -1,0 +1,154 @@
+<html>
+    <header>
+        <meta charset="utf-8"/>
+        <style>
+            .list-row{ 
+                display: grid;
+                margin: 5px;
+                border: solid;
+
+            }
+        </style>
+        <script charset="utf-8">
+            let onChangeView ={
+                topView:()=>{console.log("into Top")},
+                listView:async (event)=>{
+                    console.log("into list");
+                    let listView = document.getElementById ("listOutput");
+                    listView.innerHTML="";
+                    let id = event.newURL.split("#")[1].split("-")[1] || 0;
+                    // listView.innerText = `List No.${id}`;
+                    let fetchedList =  await fetch("./api/list.json")
+                                                .then(response => response.json())
+                    let displayableList = fetchedList
+                                            .filter(row=>new Date(row.updated_at)>new Date("2019-01-01"))
+                                            .map(row=>{
+                                                row.data = row.data.text;
+                                                row.flat = Object
+                                                            .keys(row.flat)
+                                                            .map(key=>row.flat[key])
+                                                            .reduce((p,c)=>{
+                                                                p.push(c)
+                                                                return p
+                                                            }, new Array())
+                                                return row;
+                                            })
+                    let  fetchUser = async (user_id)=>{
+                        return new Promise((resolve,reject)=>{
+                            setTimeout(()=>{
+                                fetch("./api/user.json")
+                                    .then(response => response.json()
+                                    )
+                                    .then(json=>{
+                                        if ((location.hash.split("-")[1]||"") != id){
+                                            reject()
+                                        }
+                                        if(user_id in json){
+                                            resolve(json[user_id].screenname)
+                                        }else{
+                                            resolve("UNKWOUN_USER")
+                                        }
+                                    }
+                                    )
+                                
+                            },1000)
+                        })
+                    };
+                    let createDom = async data=>{
+                        let domObject = document.createElement("a")
+                        domObject.classList.add("list-row")
+                        domObject.href = `#contentView-${data.content_id}`;
+                        let userScreennameObject =  document.createElement("div");
+                        userScreennameObject.innerText = await fetchUser(data.user_id);
+                        domObject.appendChild(userScreennameObject);
+                        let titleObject = document.createElement("div");
+                        titleObject.innerText = data.title;
+                        domObject.appendChild(titleObject);
+                        let dataObject = document.createElement("div");
+                        dataObject.innerText = data.data;
+                        domObject.appendChild(dataObject);
+                        let updated_atObject = document.createElement("div");
+                        updated_atObject.innerText = data.updated_at
+                        updated_atObject.style = "text-align: right;";
+                        domObject.appendChild(updated_atObject);
+                        listView.appendChild(domObject)
+                        let flat_atObject = document.createElement("div");
+                        flat_atObject.innerText = data.flat
+                        domObject.appendChild(flat_atObject);
+                        listView.appendChild(domObject)
+                     }
+                     for(d of displayableList){
+                         await createDom(d);
+                     } 
+                    return
+
+
+                },
+                contentView:async (event)=>{
+                    console.log("into content");
+                    let contentView = document.getElementById ("contentOutput");
+                    contentView.innerHTML="";
+                    let id = event.newURL.split("#")[1].split("-")[1] || 0;
+                    let fetchedContent = await fetch(`./api/content-${id}.json`)
+                                                .then(response => response.json())     
+                    let domObject = document.createElement("div")
+                    domObject.style ="display: inline-flex;";;
+                    let titleObject = document.createElement("div");
+                    titleObject.innerText = fetchedContent.title;
+                    domObject.appendChild(titleObject);
+                    let dataObject = document.createElement("div");
+                    dataObject.innerText = fetchedContent.data;
+                    domObject.appendChild(dataObject);
+                    let updated_atObject = document.createElement("div");
+                    updated_atObject.innerText = fetchedContent.updated_at
+                    domObject.appendChild(updated_atObject);
+                    contentView.appendChild(domObject)
+                
+                },
+            }
+            let onhashchange = (event)=>{
+            //    console.log(event)
+                let app = document.getElementById("app");
+                // app.innerText = `${event.oldURL.split("#")[1]}=>${event.newURL.split("#")[1]}`;
+                let oldViewId = (event.oldURL.split("#")[1] || "topView").split("-")[0];
+                let newViewId = (event.newURL.split("#")[1] || "topView").split("-")[0];
+                let oldView = document.getElementById(oldViewId)|| document.createDocumentFragment;
+                oldView.style ="display: none;"
+                let newView = document.getElementById(newViewId)|| document.createDocumentFragment;
+                newView.style ="display: block;"
+                if(newViewId in onChangeView){
+                    onChangeView[newViewId](event) 
+                }
+           }
+           window.addEventListener("hashchange",onhashchange);
+           window.addEventListener("load", ()=>{ location.hash = ""})
+        </script>
+    </header>
+    <body>
+        <div id="app">
+            <div id="topView" style="display: block;">
+                <li>topView</li>
+                <li><a href="#listView-1">リスト1</a></li>
+                <li><a href="#listView-2">リスト2</a></li>
+                <li><a href="#listView-3">リスト3</a></li>
+            </div>
+            <div id="listView"  style="display: none;">
+                    list
+                    <div id="listOutput" style="display: grid;"></div>
+            </div>
+            <div id="contentView" style="display: none;">
+                content
+                <div id="contentOutput" style="display: grid;"></div>
+            </div>
+        </div>
+       <a href="javascript:history.back()">Back</a>
+        <!-- <a href="#topView">topView</a>
+        <a href="#listView">list</a>
+        <a href="#contentView">content</a> -->
+        
+    </body>
+    <script>
+            // var app = document.getElementById("app");
+            // app.innerText = "inited";
+    </script>
+</html>
